@@ -56,15 +56,16 @@
 uint8_t report_1_data[15] = {
         1
 };
-uint16_t adc_input1_value = 0;
+volatile uint16_t adc_values[2];
 
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
 extern PCD_HandleTypeDef hpcd_USB_FS;
-extern ADC_HandleTypeDef hadc1;
+extern DMA_HandleTypeDef hdma_adc1;
 extern TIM_HandleTypeDef htim2;
 /* USER CODE BEGIN EV */
+extern ADC_HandleTypeDef hadc1;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 /* USER CODE END EV */
 
@@ -205,20 +206,21 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles ADC1 and ADC2 global interrupts.
+  * @brief This function handles DMA1 channel1 global interrupt.
   */
-void ADC1_2_IRQHandler(void)
+void DMA1_Channel1_IRQHandler(void)
 {
-  /* USER CODE BEGIN ADC1_2_IRQn 0 */
-
-  /* USER CODE END ADC1_2_IRQn 0 */
-  HAL_ADC_IRQHandler(&hadc1);
-  /* USER CODE BEGIN ADC1_2_IRQn 1 */
-  adc_input1_value = HAL_ADC_GetValue(&hadc1);
-  report_1_data[9] = adc_input1_value & 0xFF;
-  report_1_data[10] = adc_input1_value >> 8;
+  /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
+  report_1_data[9] = adc_values[0] & 0xFF;
+  report_1_data[10] = adc_values[0] >> 8;
+  report_1_data[11] = adc_values[1] & 0xFF;
+  report_1_data[12] = adc_values[1] >> 8;
   USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, report_1_data, 15);
-  /* USER CODE END ADC1_2_IRQn 1 */
+  /* USER CODE END DMA1_Channel1_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_adc1);
+  /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel1_IRQn 1 */
 }
 
 /**
@@ -245,7 +247,7 @@ void TIM2_IRQHandler(void)
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
-  HAL_ADC_Start_IT(&hadc1);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&adc_values, 2);
   /* USER CODE END TIM2_IRQn 1 */
 }
 
